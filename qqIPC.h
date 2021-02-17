@@ -7,6 +7,7 @@
 #include <string.h>
 
 #define SERVER_FIFO "FIFO2server"
+#define USER_FIFO_PATH "./userFIFO/"
 
 struct msg{
 	int type;
@@ -14,3 +15,7 @@ struct msg{
 	long desID;
 	char content[100];
 };
+
+void printMsg(struct msg* buffer){
+	printf("type: %d\tsrcID: %ld\tdesID: %ld\tcontent: %s\n",buffer->type, buffer->srcID, buffer->desID, buffer->content);
+}
