@@ -1,13 +1,20 @@
+#ifndef __LINK
+#define __LINK
+
+#include "qqIPC.h"
+
 struct node{
 	long id;
 	char userName[30];
 	struct node* next;
 };
 
-void destroyList(struct node* head){
+void destroyList(struct node* head, int ifunlink){
 	if(head == NULL)return;
 	struct node* back = head->next;
 	while(back != NULL){
+		char path[30] = USER_FIFO_PATH;
+		if(ifunlink == 1)unlink(strcat(path, back->userName));
 		free(head);
 		head = back;
 		back = back -> next;
@@ -17,7 +24,7 @@ void destroyList(struct node* head){
 
 struct node* initList(struct node* head){
 	if(head != NULL){
-		destroyList(head);	
+		destroyList(head, 0);	
 	}
 	head = (struct node*) malloc(sizeof(struct node));
 	head->id = -1;
@@ -50,7 +57,7 @@ long loginByUserName(struct node* head, char* userName){
 }
 
 struct node* logoutById(struct node* head, long id){
-	if(head == NULL)return NULL;
+	if(head == NULL || head->next == NULL)return NULL;
 	struct node* prev = head;
 	head = head->next;
 	while(head != NULL){
@@ -65,9 +72,13 @@ struct node* logoutById(struct node* head, long id){
 }
 
 void printList(struct node* head){
+	printf("----------Users----------\n");
 	while(head != NULL){
 		printf("id: %ld\tuserName: %s\n", head->id, head->userName);
 		head = head->next;
 	}
+	printf("-------------------------\n");
 	return;
 }
+
+#endif

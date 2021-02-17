@@ -11,9 +11,8 @@ void makeFIFO2client(char * userName, long id){
 	char path[20] = USER_FIFO_PATH;
 	strcat(path, userName);
 	if(access(path, F_OK))mkfifo(path, 0666);
-	close(sendfd[id]);
 	sendfd[id] = open(path, O_WRONLY | O_CREAT, 0666); 	
-	printf("the login port is %d \n", sendfd[id]);
+	printf(" USER: %s , FD: %d\n", userName, sendfd[id]);
 	if(sendfd[id] == -1){
 		perror("makeFIFO2client");
 		exit(1);
@@ -21,8 +20,8 @@ void makeFIFO2client(char * userName, long id){
 }
 
 void sendMessage(struct msg* buffer){
-	printf("send to %d >", sendfd[buffer->desID]);
-	printMsg(buffer);
+	//printf("send to %ld FD: %d>", buffer->desID, sendfd[buffer->desID]);
+	//printMsg(buffer);
 	int ret = write(sendfd[buffer->desID], buffer, sizeof(struct msg));
 	if(ret == -1){
 		perror("send to client");
@@ -31,23 +30,30 @@ void sendMessage(struct msg* buffer){
 }
 
 void login(char* content){
-	printf("login>");
+	printf("login > ");
 	long id = loginByUserName(userList, content);
-	printf("---------username：%s id:%ld\n", content, id);
 	struct msg loginsuccess = {11, -1, id, "login"};
 	makeFIFO2client(content, id);
 	sendMessage(&loginsuccess);
 }
 
 int sendLogInfo(long target){
+	struct msg buffer = {12, -1, target};
+	struct node* head = userList->next;
+	while(head != NULL){
+		memcpy(&buffer.content, head, sizeof(struct node));
+		sendMessage(&buffer);
+		head = head -> next;
+	}
+	buffer.type = 121;
+	sendMessage(&buffer);
 	return 0;
 }
 
 int diliverMessage(struct msg* buffer){
 	struct msg senddata = *buffer;
-	long tempid = senddata.srcID;
-	senddata.srcID = senddata.desID;
-	senddata.desID = tempid;
+	senddata.type += 10;
+	sendMessage(&senddata);
 	return 0;
 }
 
@@ -58,6 +64,7 @@ void unlinkFIFO(long id, char* userName){
 }
 
 int logout(long id){
+	printf("logout %ld\n", id);
 	struct node* user = logoutById(userList, id);
 	close(sendfd[id]);
 	unlinkFIFO(id, user->userName);
@@ -68,23 +75,31 @@ int logout(long id){
 int readMsgFromFIFO(){
 	struct msg buffer = {-1};
 	int receiveSize = read(receivefd, &buffer, sizeof(struct msg));
-	if(receiveSize == -1){
-		//perror("read from FIFO");
-	}
+	if(receiveSize == -1)return 0;
 	else if(receiveSize == 0){
 		return 0;
 	}
-	if(buffer.type != -1)printMsg(&buffer);
+	//if(buffer.type != -1)printMsg(&buffer);
 	switch(buffer.type){
-		case 1: login(buffer.content);break;
+		case 1: login(buffer.content);printList(userList);break;
 		case 2: sendLogInfo(buffer.srcID);break;
 		case 3: diliverMessage(&buffer);break;
-		case 4: logout(buffer.srcID);break;
+		case 4: logout(buffer.srcID);printList(userList);break;
 	}
 	return 0;
 }
 
+void closeServer(int t){
+	unlink(SERVER_FIFO);
+	close(receivefd);
+	destroyList(userList, 1);
+	printf("\nBye.\n");
+	exit(0);
+}
+
 int main(){
+	signal(SIGINT, closeServer);
+	signal(SIGSTOP, closeServer);
 	userList = initList(userList);
 	if(access(SERVER_FIFO, F_OK))mkfifo(SERVER_FIFO, 0666);
 	receivefd = open(SERVER_FIFO, O_RDONLY | O_CREAT | O_NONBLOCK, 0666);
@@ -94,10 +109,6 @@ int main(){
 	}
 	while(1){
 		readMsgFromFIFO();
-		printList(userList);
-		sleep(1);
+		usleep(50000);
 	}
-	close(receivefd);
-	destroyList(userList);
-	return 0;
 }
