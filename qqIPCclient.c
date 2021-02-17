@@ -78,12 +78,11 @@ int main(){
 	scanf("%s", userName);
 	login();
 	while(thisID == -1){
-		printf("thisID: %ld\n", thisID);
 		receiveFromFIFO();
 		sleep(1);
 	}
 	char * content = "hello, QQIPC";
-	printf("thisID:%ld\n", thisID);
+	sendMessageTo(content, -1);
 	sleep(2);
 	logout();
 }
