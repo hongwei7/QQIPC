@@ -108,7 +108,7 @@ int main(){
 		exit(1);
 	}
     mkdir(USER_FIFO_FOLDER, 0777);
-	while(1){
+    while(1){
 		readMsgFromFIFO();
 		usleep(50000);
 	}
