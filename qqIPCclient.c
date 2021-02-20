@@ -131,10 +131,10 @@ int main(){
 				break;
 			}
 			else if(strcmp(content, "user\n") == 0){
-				while(receiveFromFIFO() != 1)usleep(30000);
+                while(receiveFromFIFO() != 1)usleep(30000);
                 printList(userList);
                 getUserInfo();
-				continue;
+                continue;
 			}
             boardcast(content);
             getUserInfo();
