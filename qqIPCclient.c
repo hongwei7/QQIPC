@@ -5,7 +5,6 @@ long thisID = -1;
 char userName[30];
 int serverfd;
 int receivefd;
-int printingList = 0;
 struct node* userList = NULL;
 
 int sendMessage(struct msg* data2send){
@@ -50,14 +49,7 @@ int receiveFromFIFO(){
 	switch(buffer.type){
 		case 11: loginsuccess(buffer.desID);break;
 		case 12: userUpdate(buffer.content);break;
-		case 121: {
-				  if(printingList){
-					  printList(userList);
-					  printingList = 0;
-				  }
-				  getUserInfo();
-				  break;
-			  }
+		case 121: return 1;
 		case 13: receiveMsg(&buffer);break;
 	}
 	return 0;
@@ -90,7 +82,16 @@ int sendMessageTo(long desid, char* content){
 	return sendMessage(&data2send);
 }
 
-
+void boardcast(char* content){
+    while(receiveFromFIFO() != 1)usleep(30000);
+    struct node* cur = userList -> next;
+    printf("boardcast: %s\n", content);
+    while(cur != NULL){
+        //printf("to %ld\n", cur -> id);
+        sendMessageTo( cur -> id, content);
+        cur = cur -> next;
+    }
+}
 
 int main(){
 	signal(SIGINT, logout);
@@ -120,7 +121,7 @@ int main(){
 	char content[CONTENT_SIZE];
 	int size = 1;
 	while(1){
-		receiveFromFIFO();
+		if(receiveFromFIFO() == 1) getUserInfo();
 		strcmp(content, "");
 		size = read(STDIN_FILENO, content, CONTENT_SIZE);
 		if(size > 0){
@@ -130,10 +131,13 @@ int main(){
 				break;
 			}
 			else if(strcmp(content, "user\n") == 0){
-				printingList = 1;
+				while(receiveFromFIFO() != 1)usleep(30000);
+                printList(userList);
+                getUserInfo();
 				continue;
 			}
-			sendMessageTo(1 - thisID, content);
+            boardcast(content);
+            getUserInfo();
 		}
 		usleep(30000);
 	}

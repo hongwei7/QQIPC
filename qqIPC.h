@@ -12,7 +12,7 @@
 
 #define SERVER_FIFO "FIFO2server"
 #define USER_FIFO_PATH "./userFIFO/"
-
+#define USER_FIFO_FOLDER "userFIFO"
 #define CONTENT_SIZE 100
 
 struct msg{
